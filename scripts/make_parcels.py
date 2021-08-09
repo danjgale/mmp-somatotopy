@@ -8,12 +8,8 @@ import nibabel as nib
 pjoin = os.path.join
 
 
-def _module_dir():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
 def _get_surfaces(hemi=None):
-    resources = os.path.join(_module_dir(), '../resources')
+    resources = os.path.join('../resources')
     template = 'Q1-Q6_RelatedParcellation210.{}.' \
                'midthickness_MSMAll_2_d41_WRN_DeDrift.32k_fs_LR.surf.gii'
     if hemi is None:
@@ -24,7 +20,7 @@ def _get_surfaces(hemi=None):
 
 def _add_medwall(data):
     medwall = 'Human.MedialWall_Conte69.32k_fs_LR.dlabel.nii'
-    medwall = nib.load(pjoin(_module_dir(), '../resources/', medwall))
+    medwall = nib.load(pjoin('../resources/', medwall))
 
     out = medwall.get_fdata().ravel()
     out[out == 1] = np.nan
@@ -36,7 +32,7 @@ def load_mmp():
     mmp_parc = 'Q1-Q6_RelatedValidation210.' \
                'CorticalAreas_dil_Final_Final_Areas_Group_Colors' \
                '.32k_fs_LR.dlabel.nii'
-    mmp_parc = pjoin(_module_dir(), '../resources/', mmp_parc)
+    mmp_parc = pjoin('../resources/', mmp_parc)
 
     # MMP roi vertices
     img = nib.load(mmp_parc)
@@ -59,13 +55,12 @@ def _get_flattened_labels(img):
 
 
 def border_to_label(hemi, out_dir):
-
     if hemi not in ['L', 'R']:
         raise ValueError("hemi must be 'L' or 'R'")
     surf = _get_surfaces(hemi)
     
     border = f'Q1-Q6_RelatedParcellation210.{hemi}.SubAreas.32k_fs_LR.border'
-    border = pjoin(_module_dir(), '../resources/', border)
+    border = pjoin('../resources/', border)
 
     gii = pjoin(out_dir, f'SomatotopicAreas.{hemi}.32k_fs_LR.label.gii')
 
@@ -75,7 +70,6 @@ def border_to_label(hemi, out_dir):
 
 
 def create_label_img(x, label_file):
-
     darray = nib.gifti.GiftiDataArray(x, intent='NIFTI_INTENT_LABEL',
                                       datatype='NIFTI_TYPE_INT32')
 
@@ -99,7 +93,6 @@ def create_label_img(x, label_file):
     
 
 def intersect_mmp(mmp_vertices, subareas, hemi):
-
     x = np.asarray(subareas.agg_data()).ravel()
     results = []
 
@@ -135,7 +128,6 @@ def label_to_dlabel(left, right, out):
           
 
 def main():
-
     out_dir = '../parcellations'
     os.makedirs(out_dir, exist_ok=True)
 
@@ -165,9 +157,9 @@ def main():
 
     # generate CIFTI images
     label_to_dlabel(sub_area_imgs[0], sub_area_imgs[1], 
-                    'SomatotopicAreas.32k_fs_LR.dlabel.nii')
+                    pjoin(out_dir, 'SomatotopicAreas.32k_fs_LR.dlabel.nii'))
     label_to_dlabel(parc_imgs[0], parc_imgs[1], 
-                    'SomatotopicParc.32k_fs_LR.dlabel.nii')
+                    pjoin(out_dir, 'SomatotopicParc.32k_fs_LR.dlabel.nii'))
 
 
 if __name__ == '__main__':
