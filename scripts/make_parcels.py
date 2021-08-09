@@ -14,7 +14,8 @@ def _module_dir():
 
 def _get_surfaces(hemi=None):
     resources = os.path.join(_module_dir(), '../resources')
-    template = 'Q1-Q6_RelatedParcellation210.{}.midthickness_MSMAll_2_d41_WRN_DeDrift.32k_fs_LR.surf.gii'
+    template = 'Q1-Q6_RelatedParcellation210.{}.' \
+               'midthickness_MSMAll_2_d41_WRN_DeDrift.32k_fs_LR.surf.gii'
     if hemi is None:
         return (os.path.join(resources, template.format(h)) for h in ['L', 'R'])
     else:
@@ -57,7 +58,7 @@ def _get_flattened_labels(img):
     return np.sum(labels, axis=0)
 
 
-def border_to_label(hemi):
+def border_to_label(hemi, out_dir):
 
     if hemi not in ['L', 'R']:
         raise ValueError("hemi must be 'L' or 'R'")
@@ -89,19 +90,20 @@ def create_label_img(x, label_file):
 
     labeltable = nib.gifti.GiftiLabelTable()
     for i, l, n in zip(index.tolist(), labels.tolist(), names.tolist()):
-        glabel = nib.gifti.GiftiLabel(key=int(i), red=l[0], green=l[1], blue=l[2])
+        glabel = nib.gifti.GiftiLabel(key=int(i), red=l[0], 
+                                      green=l[1], blue=l[2])
         glabel.label = n
         labeltable.labels.append(glabel)
 
     return nib.GiftiImage(darrays=[darray], labeltable=labeltable)
     
 
-def intersect_mmp(mmp_vertices, subareas):
+def intersect_mmp(mmp_vertices, subareas, hemi):
 
     x = np.asarray(subareas.agg_data()).ravel()
-
     results = []
-    init_ix = 1
+
+    init_ix = 1 if hemi == 'L' else 23
     for i in np.unique(x)[1:]:
         mask = (x == i).astype(float)
         masked_rois = mask * mmp_vertices
@@ -117,30 +119,56 @@ def intersect_mmp(mmp_vertices, subareas):
     return np.sum(np.array(results), axis=0)
 
 
-if __name__ == '__main__':
-    
+def set_structure(img, hemi):
+    if hemi not in ['L', 'R']:
+        raise ValueError("Hemi must be 'L' or 'R'")
+
+    struct = 'CORTEX_LEFT' if hemi == 'L' else 'CORTEX_RIGHT'
+    cmd = f'wb_command -set-structure {img} {struct}'
+    subprocess.run(cmd.split())
+
+
+def label_to_dlabel(left, right, out):
+    cmd = f'wb_command -cifti-create-label {out} ' \
+          f'-left-label {left} -right-label {right}'
+    subprocess.run(cmd.split())
+          
+
+def main():
 
     out_dir = '../parcellations'
     os.makedirs(out_dir, exist_ok=True)
 
-    subarea_labels = '../parcellations/SomatotopicAreas_labels.csv'
+    subarea_labels = '../labels/somatotopic_areas_labels.csv'
 
-    list_ = []
+    sub_area_imgs, parc_imgs = [], []
     for mmp, h in zip(load_mmp(), ['L', 'R']):
         
         # create sub area label image
-        gii = border_to_label(h)
-        sub_areas = create_label_img(_get_flattened_labels(gii), 
+        sub_area_file = border_to_label(h, out_dir)
+        sub_areas = create_label_img(_get_flattened_labels(sub_area_file), 
                                      subarea_labels)
-        sub_areas.to_filename(gii)
+        sub_areas.to_filename(sub_area_file)
+        sub_area_imgs.append(sub_area_file)
 
         # intersect sub area label image with HCP-MMP
-        subarea_parc_labels = f'../parcellations/{h}_Parcellation_Labels.csv'
-        sub_area_parc = create_label_img(intersect_mmp(mmp, sub_areas), 
+        subarea_parc_labels = f'../labels/{h}_parcellation_labels.csv'
+        sub_area_parc = create_label_img(intersect_mmp(mmp, sub_areas, h), 
                                          subarea_parc_labels)
-        sub_area_parc.to_filename(f'../parcellations/SomatotopicParc.{h}.32k_fs_LR.label.gii')
+
+        # create GIFTI parcellation file 
+        parc_file = os.path.join(out_dir, 
+                                f'SomatotopicParc.{h}.32k_fs_LR.label.gii')
+        sub_area_parc.to_filename(parc_file)
+        set_structure(parc_file, h)
+        parc_imgs.append(parc_file)
+
+    # generate CIFTI images
+    label_to_dlabel(sub_area_imgs[0], sub_area_imgs[1], 
+                    'SomatotopicAreas.32k_fs_LR.dlabel.nii')
+    label_to_dlabel(parc_imgs[0], parc_imgs[1], 
+                    'SomatotopicParc.32k_fs_LR.dlabel.nii')
 
 
-    # make CIFTI version of sub area label image 
-
-    # make CIFTI version of sub area parcellation
+if __name__ == '__main__':
+    main()
