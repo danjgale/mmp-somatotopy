@@ -8,7 +8,7 @@ This repository contains parcellation files for the somatotopic subareas of prim
 
 ## Overview
 
-- `parcellations/`
+- `parcellations/`: CIFTI and GIFTI parcellation files
 	- `SomatotopicAreas*`: Somatotopic areas defined by Van Essen & Glasser (2018)
 	- `SomatotopicParc*`:  Sensorimotor regions of HCP-MMP1.0 subparcellated by somatotopic areas
 - `labels/`: Label reference files for images `parcellations/`
