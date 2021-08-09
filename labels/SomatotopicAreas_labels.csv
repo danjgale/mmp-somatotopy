@@ -1,0 +1,6 @@
+Name,Index,Red,Green,Blue,Alpha
+Face,1,64,34,136,1
+Ocular,2,108,162,235,1
+UpperExtremity,3,181,211,61,1
+Trunk,4,254,210,63,1
+LowerExtremity,5,235,125,91,1
