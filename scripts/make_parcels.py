@@ -139,7 +139,7 @@ def main():
     out_dir = '../parcellations'
     os.makedirs(out_dir, exist_ok=True)
 
-    subarea_labels = '../labels/somatotopic_areas_labels.csv'
+    subarea_labels = '../labels/SomatotopicAreas_labels.csv'
 
     sub_area_imgs, parc_imgs = [], []
     for mmp, h in zip(load_mmp(), ['L', 'R']):
@@ -152,7 +152,7 @@ def main():
         sub_area_imgs.append(sub_area_file)
 
         # intersect sub area label image with HCP-MMP
-        subarea_parc_labels = f'../labels/{h}_parcellation_labels.csv'
+        subarea_parc_labels = f'../labels/{h}_SomatotopicParc_labels.csv'
         sub_area_parc = create_label_img(intersect_mmp(mmp, sub_areas, h), 
                                          subarea_parc_labels)
 
